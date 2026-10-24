@@ -19,7 +19,12 @@ export default function App() {
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <DashboardView onNavigate={(view) => setActiveView(view)} />;
+        return (
+          <DashboardView 
+            onNavigate={(view) => setActiveView(view)} 
+            onOpenSettings={() => setIsSettingsOpen(true)} 
+          />
+        );
       case 'safety':
         return <SafetyView />;
       case 'crack':

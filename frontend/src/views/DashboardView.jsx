@@ -10,15 +10,56 @@ import {
   FileText, 
   ArrowUpRight, 
   RefreshCw,
-  Download
+  Download,
+  Settings,
+  ExternalLink,
+  Server,
+  Sparkles
 } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
-import { api } from '../api/client';
+import { api, getApiBaseUrl } from '../api/client';
 
-export default function DashboardView({ onNavigate }) {
+const DEMO_DASHBOARD = {
+  timestamp: new Date().toLocaleString(),
+  project_name: "Metro Sky Tower - Multimodal Construction Intelligence",
+  overall_health_score: 82,
+  safety_compliance_score: 72,
+  structural_integrity_score: 78,
+  schedule_adherence_pct: 88,
+  budget_adherence_pct: 94,
+  active_safety_violations: 3,
+  open_structural_defects: 2,
+  weather_workability_status: "CAUTION_AFTERNOON_WINDS",
+  total_workers_on_site: 79,
+  recent_inspections: [
+    { id: "SAFE-8F12A", module: "Site Safety PPE", zone: "Zone 4 Scaffolding", status: "Action Required", score: 72, time: "10 mins ago" },
+    { id: "DEFECT-4B29C", module: "Defect / Crack Vision", zone: "Floor 3 Transfer Girder", status: "Severe Shear Crack (1.65mm)", score: 62, time: "45 mins ago" },
+    { id: "VAL-99A10", module: "Cost Estimator BOQ", zone: "Commercial Phase 1", status: "Capex $7.6M Est.", score: 94, time: "2 hours ago" },
+    { id: "WX-33D81", module: "Weather Risk Advisor", zone: "Site Wide", status: "Caution: Afternoon Gusts", score: 85, time: "3 hours ago" }
+  ],
+  recent_blockers: [
+    { id: "BLK-901", issue: "RMC batching transit delay due to expressway gridlock", impact: "1 day", severity: "MEDIUM" },
+    { id: "BLK-902", issue: "Tower crane hydraulic seal inspection required", impact: "4 hours", severity: "HIGH" }
+  ],
+  critical_milestones: [
+    { milestone: "Floor 4 Slab Cast & Monolithic Pour", target: "2026-10-25", status: "On Track", progress: 85 },
+    { milestone: "Curtain Wall Glazing Delivery - Phase 2", target: "2026-11-04", status: "Pending", progress: 20 },
+    { milestone: "Substation Power Energization", target: "2026-11-18", status: "Scheduled", progress: 0 }
+  ],
+  executive_summary_bullets: [
+    "Overall Project Health Index stands at 82% with active works progressing across 6 operational zones.",
+    "Site Safety Compliance is rated at 72% due to elevated harness non-compliance in Sector B scaffolding.",
+    "Structural Crack Detection flagged a 1.65 mm shear crack on Floor 3 Transfer Girder; temporary shoring is initiated.",
+    "Weather intelligence advises executing mass slab concreting prior to 12:00 PM before wind gusts exceed 34 km/h.",
+    "Total on-site workforce stands at 79 personnel with optimal productivity reported."
+  ]
+};
+
+export default function DashboardView({ onNavigate, onOpenSettings }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const fetchOverview = async () => {
     try {
@@ -26,6 +67,7 @@ export default function DashboardView({ onNavigate }) {
       setError(null);
       const res = await api.getDashboardOverview();
       setData(res);
+      setIsDemoMode(false);
     } catch (err) {
       setError(err.message || "Failed to load dashboard overview.");
     } finally {
@@ -36,6 +78,12 @@ export default function DashboardView({ onNavigate }) {
   useEffect(() => {
     fetchOverview();
   }, []);
+
+  const handleEnableDemoMode = () => {
+    setData(DEMO_DASHBOARD);
+    setError(null);
+    setIsDemoMode(true);
+  };
 
   const handleExportJSON = () => {
     if (!data) return;
@@ -58,19 +106,92 @@ export default function DashboardView({ onNavigate }) {
   }
 
   if (error) {
+    const currentApi = getApiBaseUrl();
     return (
       <div className="view-content">
-        <div className="glass-panel" style={{ padding: '24px', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#f87171' }}>
-            <AlertTriangle size={20} />
-            <span style={{ fontWeight: 600 }}>Backend Connection Error: {error}</span>
+        <div className="glass-panel" style={{ 
+          padding: '28px', 
+          borderColor: 'rgba(245, 158, 11, 0.4)', 
+          background: 'rgba(15, 23, 42, 0.95)',
+          maxWidth: '800px',
+          margin: '20px auto',
+          borderRadius: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#fbbf24', marginBottom: '14px' }}>
+            <Server size={24} />
+            <span style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>FastAPI Backend Not Connected Yet</span>
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            Ensure the FastAPI backend is running on port 8000.
+
+          <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Your frontend is live on Vercel, but the browser is trying to connect to:
           </p>
-          <button onClick={fetchOverview} className="btn btn-secondary" style={{ marginTop: '14px', fontSize: '12px' }}>
-            <RefreshCw size={14} /> Retry Telemetry
-          </button>
+          <div style={{ 
+            background: 'rgba(0, 0, 0, 0.4)', 
+            padding: '10px 14px', 
+            borderRadius: '8px', 
+            margin: '10px 0 16px 0', 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: '12.5px',
+            color: 'var(--accent-cyan)' 
+          }}>
+            {currentApi}
+          </div>
+
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+            To connect your live Python backend, deploy it to <strong>Render</strong> using the pre-configured Blueprint, then copy the Render URL here:
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '22px' }}>
+            <a 
+              href="https://render.com/deploy?repo=https://github.com/12solankijay-dot/construction-intelligence-platform" 
+              target="_blank" 
+              rel="noreferrer"
+              className="btn btn-primary"
+              style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px', textDecoration: 'none' }}
+            >
+              <ExternalLink size={15} /> 1-Click Deploy Backend on Render
+            </a>
+
+            {onOpenSettings && (
+              <button 
+                onClick={onOpenSettings} 
+                className="btn btn-secondary" 
+                style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px' }}
+              >
+                <Settings size={15} /> Enter Render Backend URL
+              </button>
+            )}
+
+            <button 
+              onClick={handleEnableDemoMode} 
+              className="btn btn-secondary" 
+              style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px', borderColor: 'rgba(52, 211, 153, 0.4)', color: '#34d399' }}
+            >
+              <Sparkles size={15} /> Preview with Demo Telemetry
+            </button>
+
+            <button 
+              onClick={fetchOverview} 
+              className="btn btn-secondary" 
+              style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px' }}
+            >
+              <RefreshCw size={15} /> Retry
+            </button>
+          </div>
+
+          <div style={{ 
+            padding: '12px 14px', 
+            background: 'rgba(239, 68, 68, 0.08)', 
+            border: '1px solid rgba(239, 68, 68, 0.2)', 
+            borderRadius: '8px', 
+            fontSize: '12px', 
+            color: '#f87171',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <AlertTriangle size={15} /> Connection status: {error}
+          </div>
         </div>
       </div>
     );
@@ -78,6 +199,36 @@ export default function DashboardView({ onNavigate }) {
 
   return (
     <div className="view-content" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      {isDemoMode && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '12px',
+          padding: '12px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          fontSize: '12.5px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24' }}>
+            <Sparkles size={16} />
+            <span><strong>Demonstration Mode Active:</strong> Displaying simulated construction intelligence telemetry.</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {onOpenSettings && (
+              <button onClick={onOpenSettings} className="btn btn-secondary" style={{ fontSize: '11.5px', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Settings size={13} /> Connect Render Backend
+              </button>
+            )}
+            <button onClick={fetchOverview} className="btn btn-secondary" style={{ fontSize: '11.5px', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <RefreshCw size={13} /> Re-check Live Backend
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner / Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
         <div>
