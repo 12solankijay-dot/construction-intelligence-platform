@@ -144,8 +144,55 @@ SkillWallet-Project/
 │   │   ├── App.jsx               # Main state router
 │   │   ├── index.css             # Cyber-industrial theme & design tokens
 │   │   └── main.jsx
+├── render.yaml                   # Render Blueprint for 1-click backend deployment
+├── vercel.json                   # Root Vercel SPA routing configuration
 ├── start_platform.bat            # 1-click launcher for both services
 ├── start_backend.bat             # Standalone backend launcher
 ├── start_frontend.bat            # Standalone frontend launcher
 └── README.md                     # Complete project documentation
 ```
+
+---
+
+## Cloud Deployment (Vercel & Render)
+
+### 1. Backend Deployment on Render (FastAPI)
+The backend is pre-configured with a Render Blueprint [`render.yaml`](./render.yaml).
+
+**Option A: 1-Click Blueprint (Recommended)**
+1. Log into your [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** -> **Blueprint**.
+3. Connect your repository: `https://github.com/12solankijay-dot/construction-intelligence-platform`.
+4. Render will automatically read `render.yaml`, configure the Python runtime, and deploy the service.
+5. Your live backend URL will be: `https://construction-intelligence-backend.onrender.com` (or your custom service name).
+6. Verify health status at: `https://<your-render-url>/api/v1/health`.
+
+**Option B: Manual Web Service Setup**
+- **Runtime**: Python 3
+- **Root Directory**: `backend`
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Environment Variables**:
+  - `PYTHON_VERSION`: `3.11.9`
+  - `CORS_ORIGINS`: `*`
+  - `GEMINI_API_KEY`: *(Optional - leave blank to use the offline Civil Engineering Simulator)*
+
+---
+
+### 2. Frontend Deployment on Vercel (React + Vite)
+The frontend is pre-configured with [`vercel.json`](./vercel.json) for Vite single-page application routing.
+
+**Deploy via Vercel Dashboard:**
+1. Log into your [Vercel Dashboard](https://vercel.com/new).
+2. Click **Import** next to your GitHub repository `12solankijay-dot/construction-intelligence-platform`.
+3. Configure Project:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. **Environment Variables**:
+   - `VITE_API_BASE_URL`: `https://<your-render-url>` (e.g. `https://construction-intelligence-backend.onrender.com`)
+5. Click **Deploy**. Your live app will be accessible at: `https://<project-name>.vercel.app`.
+
+*Note: You can also adjust or test your backend endpoint at any time in real time by clicking the Settings gear icon in the frontend navbar!*
+
