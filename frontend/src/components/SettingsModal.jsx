@@ -1,23 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { X, Key, Cpu, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
-import { getStoredApiKey, setStoredApiKey } from '../api/client';
+import { X, Key, Cpu, ShieldCheck, CheckCircle2, AlertCircle, Server, Globe, RefreshCw } from 'lucide-react';
+import { 
+  getStoredApiKey, 
+  setStoredApiKey, 
+  getStoredBackendUrl, 
+  setStoredBackendUrl, 
+  getApiBaseUrl 
+} from '../api/client';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const [apiKey, setApiKey] = useState('');
+  const [backendUrl, setBackendUrl] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null); // 'checking' | 'connected' | 'failed'
+  const [serverInfo, setServerInfo] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setApiKey(getStoredApiKey());
+      setBackendUrl(getStoredBackendUrl());
       setSavedSuccess(false);
+      setConnectionStatus(null);
+      setServerInfo('');
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
+  const testConnection = async () => {
+    setConnectionStatus('checking');
+    setServerInfo('');
+    try {
+      let target = (backendUrl.trim() || getApiBaseUrl()).replace(/\/+$/, "");
+      if (!target.endsWith("/api/v1")) {
+        target = `${target}/api/v1`;
+      }
+      const res = await fetch(`${target}/health`, { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        setConnectionStatus('connected');
+        setServerInfo(data.status === 'healthy' ? 'Backend Online & Healthy' : 'Connected');
+      } else {
+        setConnectionStatus('failed');
+        setServerInfo(`Server responded with HTTP ${res.status}`);
+      }
+    } catch (err) {
+      setConnectionStatus('failed');
+      setServerInfo(err.message || 'Unable to reach backend endpoint');
+    }
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
     setStoredApiKey(apiKey.trim());
+    setStoredBackendUrl(backendUrl.trim());
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
@@ -27,8 +63,11 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   const handleClear = () => {
     setApiKey('');
+    setBackendUrl('');
     setStoredApiKey('');
+    setStoredBackendUrl('');
     setSavedSuccess(true);
+    setConnectionStatus(null);
     setTimeout(() => {
       setSavedSuccess(false);
     }, 900);
@@ -93,6 +132,58 @@ export default function SettingsModal({ isOpen, onClose }) {
         </div>
 
         <form onSubmit={handleSave}>
+          {/* Backend Server URL Configuration */}
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Server size={14} color="var(--accent-cyan)" /> Backend API Endpoint (Render / Cloud)
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Active: <code style={{ color: 'var(--accent-amber)', fontSize: '11px' }}>{getApiBaseUrl()}</code>
+              </span>
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="https://your-backend.onrender.com (or leave empty for default)"
+                value={backendUrl}
+                onChange={(e) => {
+                  setBackendUrl(e.target.value);
+                  setConnectionStatus(null);
+                }}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={testConnection}
+                disabled={connectionStatus === 'checking'}
+                className="btn btn-secondary"
+                style={{ fontSize: '11.5px', padding: '6px 12px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}
+                title="Test backend connection"
+              >
+                <RefreshCw size={12} className={connectionStatus === 'checking' ? 'spin' : ''} />
+                {connectionStatus === 'checking' ? 'Testing...' : 'Test Ping'}
+              </button>
+            </div>
+            {connectionStatus && (
+              <div style={{
+                marginTop: '6px',
+                fontSize: '11.5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: connectionStatus === 'connected' ? '#34d399' : '#f87171'
+              }}>
+                {connectionStatus === 'connected' ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                <span>{serverInfo}</span>
+              </div>
+            )}
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Leave blank to use default (<strong>{import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}</strong>). Set this to your Render service URL when running the cloud backend.
+            </p>
+          </div>
+
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Google Gemini API Key</span>

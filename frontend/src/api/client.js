@@ -1,4 +1,33 @@
-const API_BASE = "http://localhost:8000/api/v1";
+export function getStoredBackendUrl() {
+  return localStorage.getItem("BACKEND_API_URL") || "";
+}
+
+export function setStoredBackendUrl(url) {
+  if (url && url.trim()) {
+    localStorage.setItem("BACKEND_API_URL", url.trim());
+  } else {
+    localStorage.removeItem("BACKEND_API_URL");
+  }
+}
+
+export function getApiBaseUrl() {
+  // 1. User manual override stored in localStorage
+  const stored = getStoredBackendUrl();
+  if (stored) {
+    let clean = stored.trim().replace(/\/+$/, "");
+    return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
+  }
+
+  // 2. Build-time / deployment environment variable from Vite (Vercel)
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && envUrl.trim()) {
+    let clean = envUrl.trim().replace(/\/+$/, "");
+    return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
+  }
+
+  // 3. Default fallback for local development
+  return "http://localhost:8000/api/v1";
+}
 
 export function getStoredApiKey() {
   return localStorage.getItem("GEMINI_API_KEY") || "";
@@ -13,7 +42,8 @@ export function setStoredApiKey(key) {
 }
 
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`;
+  const apiBase = getApiBaseUrl();
+  const url = `${apiBase}${endpoint}`;
   const apiKey = getStoredApiKey();
 
   const headers = {
